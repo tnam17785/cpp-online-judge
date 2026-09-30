@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C++ Online Judge · HSG Style</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">⚙️</span>
+        <div>
+          <h1>C++ Online Judge</h1>
+          <p class="subtitle">Kiểm tra code theo chuẩn HSG Tin học</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <label class="btn btn-outline" for="zip-input">
+          📂 Upload bộ test (ZIP)
+        </label>
+        <input type="file" id="zip-input" accept=".zip" hidden />
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Left: Problems list -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Danh sách bài</h2>
+          <span id="problem-count" class="badge">0</span>
+        </div>
+        <div id="problem-list" class="problem-list">
+          <div class="empty-state">
+            <p>Chưa có bộ test.</p>
+            <p class="hint">Upload file ZIP chứa các thư mục bài và file .in / .out</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center: Code + Settings -->
+      <section class="editor-panel">
+        <div class="panel-header">
+          <h2 id="current-problem-title">Chọn bài để bắt đầu</h2>
+          <div class="limits">
+            <label>
+              Time limit (s)
+              <input type="number" id="time-limit" value="1" min="0.1" max="10" step="0.1" />
+            </label>
+            <label>
+              Memory limit (MB)
+              <input type="number" id="mem-limit" value="256" min="16" max="1024" step="16" />
+            </label>
+          </div>
+        </div>
+
+        <div class="editor-wrapper">
+          <textarea id="code-input" spellcheck="false" placeholder="// Dán code C++ của bạn vào đây...
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    // ...
+    return 0;
+}"></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="btn-run" class="btn btn-primary" disabled>
+            ▶ Chấm bài
+          </button>
+          <button id="btn-clear" class="btn btn-ghost">Xóa code</button>
+          <span id="status-text" class="status-text"></span>
+        </div>
+      </section>
+
+      <!-- Right: Results -->
+      <section class="results-panel">
+        <div class="panel-header">
+          <h2>Kết quả</h2>
+          <div id="summary" class="summary hidden">
+            <span id="summary-percent">0%</span>
+            <span id="summary-detail">0/0 AC</span>
+          </div>
+        </div>
+
+        <div id="results-table-wrapper" class="results-table-wrapper">
+          <table id="results-table" class="results-table hidden">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Test</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+          <div id="results-empty" class="empty-state">
+            <p>Chưa có kết quả.</p>
+            <p class="hint">Sau khi chấm, bảng kết quả từng test sẽ hiện ở đây.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Chạy code qua <a href="https://wandbox.org" target="_blank" rel="noopener">Wandbox</a> · Pure static · Không cần backend</p>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
