@@ -4,7 +4,7 @@
  */
 
 const WANDBOX_URL = 'https://wandbox.org/api/compile.json';
-const COMPILER = 'gcc-13.2.0'; // stable C++ compiler on Wandbox
+const COMPILER = 'gcc-13.2.0';
 
 // State
 let problems = {}; // { name: { tests: [ {name, input, output} ] } }
@@ -30,109 +30,6 @@ const summaryPercent = document.getElementById('summary-percent');
 const summaryDetail = document.getElementById('summary-detail');
 
 // ---------- Upload & Parse ZIP ----------
-zipInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  statusText.textContent = 'Đang đọc ZIP...';
-  try {
-    const zip = await JSZip.loadAsync(file);
-    problems = parseZip(zip);
-    renderProblemList();
-    statusText.textContent = `Đã tải ${Object.keys(problems).length} bài.`;
-  } catch (err) {
-    console.error(err);
-    statusText.textContent = 'Lỗi đọc ZIP: ' + err.message;
-    alert('Không đọc được file ZIP. Hãy kiểm tra định dạng.');
-  }
-  zipInput.value = '';
-});
-
-function parseZip(zip) {
-  const result = {};
-  const files = {};
-
-  // Collect all files with content
-  const promises = [];
-  zip.forEach((relativePath, zipEntry) => {
-    if (zipEntry.dir) return;
-    // skip macOS junk
-    if (relativePath.includes('__MACOSX') || relativePath.startsWith('.')) return;
-
-    promises.push(
-      zipEntry.async('string').then((content) => {
-        files[relativePath.replace(/\\/g, '/')] = content;
-      })
-    );
-  });
-
-  // Wait is handled outside, but for simplicity we process after all loaded
-  // Actually we need to return a Promise. Let's restructure.
-  return Promise.all(promises).then(() => {
-    // Group by top-level folder (problem name)
-    const byProblem = {};
-
-    for (const [path, content] of Object.entries(files)) {
-      const parts = path.split('/').filter(Boolean);
-      if (parts.length < 2) continue; // need at least problem/file
-
-      const problemName = parts[0];
-      const fileName = parts[parts.length - 1].toLowerCase();
-
-      if (!byProblem[problemName]) byProblem[problemName] = { ins: {}, outs: {} };
-
-      // Detect input / output
-      const isIn =
-        fileName.endsWith('.in') ||
-        fileName.endsWith('.inp') ||
-        fileName.includes('input') ||
-        /^(test|tc|case)?\d*\.in$/.test(fileName);
-
-      const isOut =
-        fileName.endsWith('.out') ||
-        fileName.endsWith('.ans') ||
-        fileName.includes('output') ||
-        fileName.includes('answer');
-
-      // Extract test id (number or name without extension)
-      const base = fileName.replace(/\.(in|inp|out|ans|txt)$/i, '');
-
-      if (isIn) byProblem[problemName].ins[base] = content;
-      else if (isOut) byProblem[problemName].outs[base] = content;
-    }
-
-    // Build final structure
-    const problems = {};
-    for (const [name, data] of Object.entries(byProblem)) {
-      const tests = [];
-      const keys = new Set([...Object.keys(data.ins), ...Object.keys(data.outs)]);
-      const sorted = [...keys].sort((a, b) => {
-        const na = parseInt(a.replace(/\D/g, ''), 10);
-        const nb = parseInt(b.replace(/\D/g, ''), 10);
-        if (!isNaN(na) && !isNaN(nb)) return na - nb;
-        return a.localeCompare(b);
-      });
-
-      for (const key of sorted) {
-        if (data.ins[key] !== undefined && data.outs[key] !== undefined) {
-          tests.push({
-            name: key,
-            input: data.ins[key],
-            output: data.outs[key],
-          });
-        }
-      }
-
-      if (tests.length > 0) {
-        problems[name] = { tests };
-      }
-    }
-
-    return problems;
-  });
-}
-
-// Make parseZip async properly
 async function loadZip(file) {
   const zip = await JSZip.loadAsync(file);
   const files = {};
@@ -205,7 +102,6 @@ async function loadZip(file) {
   return result;
 }
 
-// Re-bind upload with proper async
 zipInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -224,7 +120,6 @@ zipInput.addEventListener('change', async (e) => {
     } else {
       renderProblemList();
       statusText.textContent = `Đã tải ${names.length} bài.`;
-      // Auto select first
       selectProblem(names[0]);
     }
   } catch (err) {
@@ -269,7 +164,6 @@ function selectProblem(name) {
   currentTitle.textContent = name;
   btnRun.disabled = false;
   renderProblemList();
-  // clear previous results
   clearResults();
   statusText.textContent = `${problems[name].tests.length} testcase sẵn sàng.`;
 }
@@ -285,8 +179,7 @@ btnRun.addEventListener('click', async () => {
   }
 
   const tests = problems[currentProblem].tests;
-  const timeLimit = parseFloat(timeLimitInput.value) || 1; // seconds
-  // memLimit currently informational (Wandbox does not expose precise memory easily)
+  const timeLimit = parseFloat(timeLimitInput.value) || 1;
 
   isJudging = true;
   btnRun.disabled = true;
@@ -321,14 +214,12 @@ btnRun.addEventListener('click', async () => {
       result = {
         status: 'RE',
         message: err.message || 'Network / API error',
-        time: ((performance.now() - start) / 1000).toFixed(3),
         output: '',
       };
     }
 
     const elapsed = ((performance.now() - start) / 1000).toFixed(3);
 
-    // Decide final status
     let finalStatus = result.status;
     let note = result.message || '';
 
@@ -351,7 +242,6 @@ btnRun.addEventListener('click', async () => {
       note = result.message || 'Runtime Error';
     }
 
-    // Update row
     const isAC = finalStatus === 'AC';
     row.className = isAC ? 'ac' : 'fail';
     row.innerHTML = `
@@ -361,13 +251,12 @@ btnRun.addEventListener('click', async () => {
       <td>${elapsed}s</td>
       <td title="${escapeHtml(note)}">${escapeHtml(note.length > 40 ? note.slice(0, 40) + '…' : note)}</td>`;
 
-    // Update summary live
     const percent = Math.round((acCount / (i + 1)) * 100);
     summaryPercent.textContent = percent + '%';
     summaryDetail.textContent = `${acCount}/${i + 1} AC`;
-    summaryPercent.style.color = percent === 100 ? 'var(--success)' : percent >= 50 ? 'var(--warning)' : 'var(--danger)';
+    summaryPercent.style.color =
+      percent === 100 ? 'var(--success)' : percent >= 50 ? 'var(--warning)' : 'var(--danger)';
 
-    // Small delay to be polite to the free API
     if (i < total - 1) await sleep(400);
   }
 
@@ -395,7 +284,7 @@ btnClear.addEventListener('click', () => {
 // ---------- Wandbox runner ----------
 async function runOnWandbox(code, stdin, timeLimitSec) {
   const controller = new AbortController();
-  const timeoutMs = Math.max(timeLimitSec * 1000 + 8000, 15000); // extra for compile + network
+  const timeoutMs = Math.max(timeLimitSec * 1000 + 8000, 15000);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -421,35 +310,31 @@ async function runOnWandbox(code, stdin, timeLimitSec) {
 
     const data = await res.json();
 
-    // Wandbox fields: status, program_message, program_output, compiler_error, compiler_message...
     if (data.compiler_error || (data.status === '1' && data.compiler_message)) {
       return {
         status: 'CE',
         message: (data.compiler_error || data.compiler_message || '').slice(0, 200),
         output: '',
-        time: null,
       };
     }
 
-    // status "0" usually means success
     const exitStatus = data.status;
     const output = data.program_output ?? data.program_message ?? '';
 
     if (exitStatus === '0' || exitStatus === 0) {
-      return { status: 'OK', output, message: '', time: null };
+      return { status: 'OK', output, message: '' };
     }
 
-    // Non-zero exit → treat as RE (or could be TLE if signal)
     const msg = (data.program_message || data.program_error || '').slice(0, 150);
     if (/time|timeout|killed|signal/i.test(msg)) {
-      return { status: 'TLE', message: msg, output, time: null };
+      return { status: 'TLE', message: msg, output };
     }
 
-    return { status: 'RE', message: msg || `Exit ${exitStatus}`, output, time: null };
+    return { status: 'RE', message: msg || `Exit ${exitStatus}`, output };
   } catch (err) {
     clearTimeout(timer);
     if (err.name === 'AbortError') {
-      return { status: 'TLE', message: `Timeout > ${timeLimitSec}s`, output: '', time: null };
+      return { status: 'TLE', message: `Timeout > ${timeLimitSec}s`, output: '' };
     }
     throw err;
   }
@@ -458,7 +343,6 @@ async function runOnWandbox(code, stdin, timeLimitSec) {
 // ---------- Helpers ----------
 function normalizeOutput(s) {
   if (s == null) return '';
-  // Common olympiad: strip trailing whitespace on each line + trailing newlines
   return s
     .replace(/\r\n/g, '\n')
     .split('\n')
@@ -469,10 +353,10 @@ function normalizeOutput(s) {
 
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
 }
 
 function sleep(ms) {
